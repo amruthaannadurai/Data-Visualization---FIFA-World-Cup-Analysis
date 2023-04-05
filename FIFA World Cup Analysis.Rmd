@@ -1,0 +1,251 @@
+---
+title: "FIFA Analysis"
+author: "Amrutha Annadurai 20BCE1570"
+date: "2023-04-02"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+df = read.csv(file = "fifa.csv", stringsAsFactors = FALSE)
+df = tbl_df(df)
+```
+
+
+```{r}
+head(df)
+```
+```{r}
+toNumberCurrency <- function(vector) {
+    vector <- as.character(vector)
+    vector <- gsub("(€|,)","", vector)
+    result <- as.numeric(vector)
+   
+    k_positions <- grep("K", vector)
+    result[k_positions] <- as.numeric(gsub("K","",        vector[k_positions])) * 1000
+  
+    m_positions <- grep("M", vector)
+    result[m_positions] <- as.numeric(gsub("M","", 
+    vector[m_positions])) * 1000000
+    
+    return(result)
+}
+df$Wage <- toNumberCurrency(df$Wage) 
+df$Value <- toNumberCurrency(df$Value)
+```
+```{r}
+head(df$Wage)
+```
+```{r}
+head(df$Value)
+```
+```{r}
+top_1_percent_wage   <- quantile(df$Wage, probs=0.99)
+filtered_wage <- filter(df, Wage > top_1_percent_wage)
+
+g_value <- ggplot(filtered_wage, aes(Wage))
+g_value + 
+geom_histogram(aes(fill=..count..)) + 
+ggtitle("Distribution of top 1% wage")
+```
+```{r}
+top_1_percent_value   <- quantile(df$Value, probs=0.99)
+filtered_value <- filter(df, Value > top_1_percent_value)
+
+g_wage <- ggplot(filtered_value, aes(Value))
+g_wage + 
+geom_histogram(aes(fill=..count..)) + 
+ggtitle("Distribution of top 1% Value")
+```
+```{r}
+# Create wage brackets
+wage_breaks <- c(0, 100000, 200000, 300000, 400000, 500000, Inf)
+wage_labels <- c("0-100k", "100k-200k", "200k-300k", "300k-400k", "400k-500k", "500k+")
+wage_brackets <- cut(x=df$Wage, breaks=wage_breaks, 
+labels=wage_labels, include.lowest = TRUE)
+df <- mutate(df, wage_brackets)
+# Create value brackets
+
+value_breaks <- c(0, 10000000, 20000000, 30000000, 40000000, 50000000, 60000000, 70000000, 80000000, 90000000, 100000000, Inf)
+value_labels <- c("0-10M", "10-20M", "20-30M", "30-40M", "40-50M","50-60M", "60-70M", "70-80M", "80-90M","90-100M","100M+")
+value_brackets <- cut(x=df$Value, breaks=value_breaks, 
+labels=value_labels, include.lowest = TRUE)
+df <-mutate(df, value_brackets)
+head(df)
+```
+
+```{r}
+g_age <- ggplot(data = df, aes(Age))
+g_age + 
+geom_histogram(col="black", aes(fill = ..count..)) + ggtitle("Distribution based on Age")
+```
+
+```{r}
+g_age + 
+geom_density(col="black", aes(fill = Preferred.Foot
+), alpha=1) + facet_grid(.~Preferred.Foot
+) + 
+ggtitle("Distribution based on Age and Preferred.Foot
+")
+```
+
+```{r}
+g_overall <- ggplot(data = df, aes(Overall))
+g_overall + 
+geom_histogram(col="black", aes(fill = ..count..)) + ggtitle("Distribution based on Overall Rating")
+```
+
+```{r}
+countries_count <- count(df, Nationality)
+top_10_countries <- top_n(countries_count, 10, n)
+top_10_country_names <- top_10_countries$Nationality
+
+country <- filter(df, Nationality == top_10_country_names)
+ggplot(country, aes(x = Nationality)) + 
+geom_bar(col = "black", aes(fill = ..count..)) + ggtitle("Distribution based on Nationality of Players (Top 10 Countries)")
+```
+
+```{r}
+top_1_percent_Strength   <- quantile(df$Strength, probs=0.99)
+filtered_Strength <- filter(df, Strength > top_1_percent_Strength)
+
+g_value <- ggplot(filtered_Strength, aes(Strength))
+g_value + 
+geom_histogram(aes(fill=..count..)) + 
+ggtitle("Distribution of top 1% Strength")
+```
+
+```{r}
+not0To100K <- filter(df, wage_brackets != "0-100k") 
+ggplot(not0To100K, aes(x = wage_brackets)) + 
+geom_bar(aes(fill = ..count..)) + 
+ggtitle("Distribution of top Wage between 100K-500K+")
+```
+```{r}
+moreThan50M <- filter(df, Value>50000000)
+ggplot(moreThan50M, aes(x = value_brackets)) + 
+geom_bar(aes(fill = ..count..)) + 
+ggtitle("Distribution of value between 50M-100M+")
+```
+```{r}
+g_age_overall <- ggplot(df, aes(Age, Overall))
+g_age_overall + 
+geom_point(aes(color=wage_brackets)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between Age and Overall of players based  on Wage bracket")
+```
+```{r}
+g_age_overall <- ggplot(df, aes(Age, Overall))
+g_age_overall + geom_point(aes(color=value_brackets)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between Age and Overall of players based on Value bracket")
+```
+```{r}
+ggplot(df, aes(Position)) + 
+geom_bar(aes(fill = ..count..)) + 
+ggtitle("Distribution based on General Playing Position")
+```
+```{r}
+group_clubs <- group_by(df, Club)
+club_value <- summarise(group_clubs, total_val = sum(Value))
+top_10_valuable_clubs <- top_n(club_value, 10, total_val)
+
+top_10_valuable_clubs$Club <-as.factor(top_10_valuable_clubs$Club)
+
+ggplot(top_10_valuable_clubs, aes(x = Club, y = total_val)) + geom_bar(stat = "identity", aes(fill=total_val)) + coord_flip() + ggtitle("Top 10 valuable clubs")
+```
+```{r}
+# Loading package
+library  
+   
+# Summary of dataset in package
+head(df)
+```
+
+```{r}
+top_1_percent_Strength   <- quantile(df$Strength, probs=0.99)
+filtered_Strength <- filter(df, Strength > top_1_percent_Strength)
+g_age_overall <- ggplot(filtered_Strength, aes(Age, Strength))
+g_age_overall + 
+geom_point(aes(color=Strength)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between least 1% Age and Strength")
+```
+
+```{r}
+top_1_percent_Strength   <- quantile(df$Strength, probs=0.99)
+filtered_Strength <- filter(df, Strength < top_1_percent_Strength)
+g_age_overall <- ggplot(filtered_Strength, aes(Age, Strength))
+g_age_overall + 
+geom_point(aes(color=Strength)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between top 1% Age and Strength")
+```
+
+```{r}
+top_1_percent_Acceleration   <- quantile(df$Acceleration, probs=1)
+filtered_Acceleration <- filter(df, Acceleration > top_1_percent_Acceleration)
+g_age_overall <- ggplot(filtered_Strength, aes(Age, Acceleration))
+g_age_overall + 
+geom_point(aes(color=Acceleration)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between top 1% Age and Acceleration")
+```
+
+```{r}
+top_1_percent_Acceleration   <- quantile(df$Acceleration, probs=1)
+filtered_Acceleration <- filter(df, Acceleration < top_1_percent_Acceleration)
+g_age_overall <- ggplot(filtered_Strength, aes(Age, Acceleration))
+g_age_overall + 
+geom_point(aes(color=Acceleration)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between least 1% Age and Acceleration")
+```
+
+```{r}
+top_1_percent_Agility   <- quantile(df$Agility, probs=0.99)
+filtered_Agility <- filter(df, Agility > top_1_percent_Agility)
+g_age_overall <- ggplot(filtered_Agility, aes(Age, Agility))
+g_age_overall + 
+geom_point(aes(color=Agility)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between top 1% Age and Agility")
+```
+
+```{r}
+top_1_percent_Agility   <- quantile(df$Agility, probs=0.99)
+filtered_Agility <- filter(df, Agility < top_1_percent_Agility)
+g_age_overall <- ggplot(filtered_Agility, aes(Age, Agility))
+g_age_overall + 
+geom_point(aes(color=Agility)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between least 1% Age and Agility")
+```
+
+```{r}
+top_1_percent_Aggression   <- quantile(df$Aggression, probs=0.99)
+filtered_Aggression <- filter(df, Aggression > top_1_percent_Aggression)
+g_age_overall <- ggplot(filtered_Aggression, aes(Age, Aggression))
+g_age_overall + 
+geom_point(aes(color=Aggression)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between top 1% Age and Aggression")
+```
+
+```{r}
+top_1_percent_Aggression   <- quantile(df$Aggression, probs=0.99)
+filtered_Agility <- filter(df, Aggression < top_1_percent_Aggression)
+g_age_overall <- ggplot(filtered_Agility, aes(Age, Aggression))
+g_age_overall + 
+geom_point(aes(color=Aggression)) + geom_smooth(color="darkblue") + 
+ggtitle("Distribution between least 1% Age and Aggression")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
